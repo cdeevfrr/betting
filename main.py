@@ -13,7 +13,7 @@ from generateEvaluator import generateEvaluator
 
 populationSize = 20
 numTopPerformersToKeep = 5
-numIterations = 30
+numIterations = 300
 
 def findBettingStrategy(betInformationArray):
     objectiveFunction = generateEvaluator(betInformationArray)
@@ -32,7 +32,6 @@ def evolve(initialPopulation, objectiveFunction):
 def runIteration(population, objectiveFunction):
     scoredResults = [ {'betStrategy': i, 'score': objectiveFunction(i)} for i in population]
     sortedPop = sorted(scoredResults, key=lambda result: result['score'], reverse=True)
-    print("Current best: " + str(sortedPop[0]))
     newPop = [sortedPop[i]['betStrategy'] for i in range(numTopPerformersToKeep)]
     return refillPop(newPop)
 
@@ -44,5 +43,9 @@ def refillPop(smallPopulation):
 
 def mutate(bettingStrategy, nerfConstant = 5):
     return [i + (random.random() - .5) / nerfConstant for i in bettingStrategy]
+
+def newBettingStrategy(betInformationArray):
+    return [.5 for i in range(10)]
+
 
 
