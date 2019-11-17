@@ -20,27 +20,29 @@ def findBettingStrategy(betInformationArray):
     population = []
     for i in range(populationSize):
         population.append(newBettingStrategy(betInformationArray))
-    
-    for j in range(numIterations):
-        runIteration(population, objectiveFunction)
-    return population[0]
 
+    return evolve (population, objectiveFunction)
+
+def evolve(initialPopulation, objectiveFunction):
+    population = initialPopulation
+    for j in range(numIterations):
+        population = runIteration(population, objectiveFunction)
+    return population[0]
         
 def runIteration(population, objectiveFunction):
     scoredResults = [ {'betStrategy': i, 'score': objectiveFunction(i)} for i in population]
-    sortedPop = sorted(scoredResults, key=lambda result: result['score'])
-    print(sortedPop)
-    newPop = [scoredResults[i]['betStrategy'] for i in range(numTopPerformersToKeep)]
+    sortedPop = sorted(scoredResults, key=lambda result: result['score'], reverse=True)
+    print("Current best: " + str(sortedPop[0]))
+    newPop = [sortedPop[i]['betStrategy'] for i in range(numTopPerformersToKeep)]
     return refillPop(newPop)
 
 def refillPop(smallPopulation):
-    while (smallPopulation.length < populationSize):
-        winner = pickRandomMember(smallPopulation)
+    while (len(smallPopulation) < populationSize):
+        winner = random.choice(smallPopulation)
         smallPopulation.append(mutate(winner))
     return smallPopulation
 
 def mutate(bettingStrategy, nerfConstant = 5):
-    return [i + random.random() / nerfConstant for i in bettingStrategy]
+    return [i + (random.random() - .5) / nerfConstant for i in bettingStrategy]
 
-def newBettingStrategy(betInformationArray):
-    return [1 for i in betInfromationArray]
+
