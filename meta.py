@@ -110,7 +110,7 @@ def parameterize(
         scorer,
         secondsToRunSolutions,
         secondsToOptimize,
-        metaAlgorithmSettings,
+        metaAlgorithmSettings = {},
         extraSettings):
 
     metaSettings = {
