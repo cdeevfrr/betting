@@ -18,6 +18,7 @@
 #            'timeoutSeconds'
 #            'timeBetweenPrints'
 #            'mutator'
+#            'totalConsidered'
 #            
 # Then, you can run parameterize(seconds to run) on those inputs, and it will spit out
 #    a good population size, num to keep, mutator, and initializer to use to optimize for algorithms

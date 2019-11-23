@@ -13,17 +13,18 @@ class PopulationMember:
         # evaluating things in the pop.
         self.evalCount = 0
         self.solution = solution
-        
+
+    # Returns true if this is the first score, false otherwise.
     def addEvaluation(self, newScore):
         if (self.evalCount) == 0:
-            global totalConsidered
-            totalConsidered += 1
             self.score = newScore
             self.evalCount = 1
+            return True
         else:
             # Average your score with the previous score
             self.score = (self.score * self.evalCount + newScore) / (self.evalCount + 1)
             self.evalCount += 1
+            return False
 
 defaultAlgorithmSettings = {
     'populationSize': 20,
@@ -39,15 +40,13 @@ def runGeneticAlgorithm(initializer,# type (algoSettings) => solution
                         algorithmSettings={}, # If meta-optimizing, all allowed keys should be in this dict
                         printStatus=False
                         ):
-    # Keep track of how many solutions have been checked.
-    global totalConsidered
-    totalConsidered = 0
-
-    # Make the settings that will be used throughout
-    defaultAlgorithmSettings.update(algorithmSettings)
+     # Make the settings that will be used throughout
     settings = defaultAlgorithmSettings.copy()
-    # Stick mutator into algorithmSettings so we don't have to pass it through all these functions explicitly.
+    settings.update(algorithmSettings)
+    # Stick mutator and totalConsidered into algorithmSettings
+    # so we don't have to pass them through all these functions explicitly.
     settings['mutator'] = mutator
+    settings['totalConsidered'] = 0
 
     startTime = time.time()
     population = [] # Array<PopulationMember>
@@ -64,7 +63,7 @@ def runGeneticAlgorithm(initializer,# type (algoSettings) => solution
     if(printStatus):
         print(\
             "\n\nFinished run; Considered %d total solutions in %.5f seconds. Best member has score %.5f and was evaluated %d times."\
-            % (totalConsidered, endEvolveTime - startTime, result[0].score, result[0].evalCount ))
+            % (settings['totalConsidered'], endEvolveTime - startTime, result[0].score, result[0].evalCount ))
         print("Best result: %s" % result[0].solution)
     
     return result[0:settings['numTopPerformersToKeep']]
@@ -100,7 +99,9 @@ def runIteration(population, scorer, algorithmSettings, startTime):
     for i in population:
         # there is room here to optimize - you might not need to re-evaluate things that have already been evaluated a lot.
         # However, this currently saves you from sticking to a bad solution that got a lucky break from the scorer.
-        i.addEvaluation(scorer(algorithmSettings, i.solution))
+        isNew = i.addEvaluation(scorer(algorithmSettings, i.solution))
+        if (isNew):
+            algorithmSettings['totalConsidered'] += 1
         # stop if we've timed out.
         # This keeps you from passing a timeout just because the population is large.
         if (time.time() - startTime > algorithmSettings['timeoutSeconds']):

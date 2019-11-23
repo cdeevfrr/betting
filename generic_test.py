@@ -6,16 +6,16 @@ import random
 
 
 algorithmSettings = {
-    'mutationNerfConstant': 1,
-    'populationSize': 150,
-    'numTopPerformersToKeep': 1,
+    'mutationNerfConstant': 5,
+    'populationSize': 80,
+    'numTopPerformersToKeep': 15,
     'numIterations': 2000,
     'timeBetweenPrints': 1,
     'timeoutSeconds': 1
 }
 
 def initializer(algorithmSettings):
-    return [0.1 for i in range(5)]
+    return [0.8 for i in range(5)]
 
 def mutator(algorithmSettings, parent):
     return [\
