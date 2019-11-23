@@ -18,6 +18,7 @@
 import random
 from generateEvaluator import generateEvaluator
 import time
+import math
 
 populationSize = 20
 numTopPerformersToKeep = 5
@@ -37,7 +38,7 @@ def findBettingStrategy(betInformationArray):
 
     result = evolve (population, objectiveFunction)
     print ("Considered " + str(totalConsidered) + " betting strategies")
-    return result
+    return result[0:numTopPerformersToKeep]
 
 def evolve(initialPopulation, objectiveFunction):
     population = initialPopulation
@@ -48,13 +49,17 @@ def evolve(initialPopulation, objectiveFunction):
         if currentTime - timer > 1:
             print("Iteration " + str(j) + " Current best: "+ str(population[0]))
             timer = currentTime
-    return population[0]
+    return population
         
 def runIteration(population, objectiveFunction):
     for i in population:
         ## This only re-computes scores for things that don't have scores yet.
         evaluatePopulationMember(i,objectiveFunction)
-    sortedPop = sorted(population, key= lambda result: result['score'], reverse=True)
+    sortedPop = sorted(\
+        population, \
+        key= lambda result: \
+            result['score'],\
+        reverse=True)
     # These can show you the progress as you mutate the population.
     # print(sortedPop)
     newPop = [sortedPop[i] for i in range(numTopPerformersToKeep)]
@@ -79,6 +84,16 @@ def makePopulationMember(bettingArray):
 def evaluatePopulationMember(popMember, objectiveFunction):
     if(popMember['score'] == 'unknown'):
         popMember['score'] = objectiveFunction(popMember['betStrategy'])
+        popMember['evalCount'] = 1
+    else:
+        # Rescore the result, and add that to the running average
+        popMember['score'] = \
+                           (\
+                               popMember['score'] * popMember['evalCount'] \
+                               + objectiveFunction(popMember['betStrategy']) \
+                            ) / (popMember['evalCount'] + 1)
+        popMember['evalCount'] += 1
+                           
 
 
 def newBettingStrategy(betInformationArray):
