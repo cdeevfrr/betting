@@ -110,17 +110,21 @@ def parameterize(
         scorer,
         secondsToRunSolutions,
         secondsToOptimize,
+        metaAlgorithmSettings,
         extraSettings):
+
+    metaSettings = {
+            'populationSize':5,
+            'numTopPerformersToKeep':2,
+            'timeoutSeconds': secondsToOptimize
+        }
+    metaSettings.update(metaAlgorithmSettings)
     
     return generic.runGeneticAlgorithm(
         create_meta_initializer(extraSettings),
         meta_mutator,
         create_meta_scorer(initializer, mutator, scorer, secondsToRunSolutions),
-        {
-            'populationSize':5,
-            'numTopPerformersToKeep':2,
-            'timeoutSeconds': secondsToOptimize
-        },
+        metaSettings,
         True # print status
     )
 

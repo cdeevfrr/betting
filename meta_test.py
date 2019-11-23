@@ -30,6 +30,7 @@ meta.parameterize(
     mutator,
     scorer,
     1, # how long to run each genetic algorithm
-    60 , # how long to run the meta algorithm
-    {'mutationNerfConstant': 5}
+    60 , # how long to run the meta algorithm,
+    metaAlgorithmSettings = {},
+    extraSettings = {'mutationNerfConstant': 5}
 )
