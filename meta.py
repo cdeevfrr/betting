@@ -29,31 +29,46 @@ import generic
 from generateEvaluator import generateEvaluator
 import random
 
-
-
-
-algorithmSettings = {
-    'mutationNerfConstant': 5,
+def meta_initializer(meta_algorithmSettings):
+    return {
     'populationSize': 20,
     'numTopPerformersToKeep': 5,
-    'numIterations': 200,
-    'timeBetweenPrints': 1
+    'maxIterations': 2000,
+    }
 }
 
-def initializer(algorithmSettings):
-    return [0.5 for i in range(5)]
-
-def mutator(algorithmSettings, parent):
+def meta_mutator(meta_algorithmSettings, parent):
     return [\
-        i + (random.random() - .5) \
-        / \
-        algorithmSettings['mutationNerfConstant'] \
+        key: round(parent[key] * random() * 2)
     for i in parent]
 
-scorer = generateEvaluator('')
+def meta_scorer(object_initialzier, object_mutator, object_scorer, secondsToRun):
+    def scoringFunction(meta_algorithmSettings, solution):
+        # solution is an instance of object-level algorithmSettings.
 
-generic.runGeneticAlgorithm(
-    initializer,
-    mutator,
-    scorer,
-    algorithmSettings)
+        # Add the timeout to the solution
+        newSettings = solution.clone()
+        newSettings.update('timeoutSeconds': secondsToRun)
+        object_result = generic.runGeneticAlgorithm(
+            object_initializer,
+            object_mutator,
+            object_scorer,
+            newSettings
+            )
+        # Should we instead average the top 3 members of the object population,
+        # to lessen the impact of randomness?
+        return object_result[0].score
+    return scoringFunction
+
+def parameterize(
+        secondsToRun,
+        mutator,
+        initializer,
+        scorer):
+    return generic.runGeneticAlgorithm(
+        meta_initializer,
+        meta_mutator,
+        meta_scorer(mutator, initializer, scorer, secondsToRun),
+        {} # Use default meta_algorithmSettings
+        )
+
