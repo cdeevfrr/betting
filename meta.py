@@ -12,11 +12,14 @@
 #        If you want an integer setting or similar, please do your own converting
 #            to and from the range -1 to 1. To determine settings for you, we need a
 #            simple solution space.
-#        DO NOT USE default settings as keys. The default settings are:
+#        DO NOT WRITE TO these settings within your functions:
 #            'populationSize'
 #            'numTopPerformersToKeep'
 #            'maxIterations'
 #            'timeoutSeconds'
+#            'timeBetweenPrints'
+#            'mutator'
+#            
 # Then, you can run parameterize(seconds to run) on those inputs, and it will spit out
 #    a good population size, num to keep, mutator, and initializer to use to optimize for algorithms
 #    run in that number of seconds.
@@ -52,7 +55,6 @@ defaultAlgorithmSettings = {
     'numTopPerformersToKeep': 5,
     'maxIterations': 200,
     'timeoutSeconds': 60*2, 
-    'totalConsidered': 0,
     'timeBetweenPrints': 5
     }
 
