@@ -8,22 +8,32 @@
 #   }
 # ]
 #
+
+#Population Member type:
+# {
+#    betStrategy: Array<number> the fraction to bet at each iteration
+#    score: 'unknown' | number  the score that this bet strategy gets. Stored to reduce computation time.
+# }
+#
 import random
 from generateEvaluator import generateEvaluator
+import time
 
 populationSize = 20
 numTopPerformersToKeep = 5
-numIterations = 5
+numIterations = 200
 totalConsidered = 0
+mutationNerfConstant = 5
 
 def findBettingStrategy(betInformationArray):
     global totalConsidered
     objectiveFunction = generateEvaluator(betInformationArray)
-    population = []
+    population = [] # Array<PopulationMember>
     totalConsidered = 0
     for i in range(populationSize):
         totalConsidered += 1
-        population.append(newBettingStrategy(betInformationArray))
+        population.append(makePopulationMember(newBettingStrategy(betInformationArray)))
+    # print(population)
 
     result = evolve (population, objectiveFunction)
     print ("Considered " + str(totalConsidered) + " betting strategies")
@@ -31,17 +41,23 @@ def findBettingStrategy(betInformationArray):
 
 def evolve(initialPopulation, objectiveFunction):
     population = initialPopulation
+    timer = time.time()
     for j in range(numIterations):
         population = runIteration(population, objectiveFunction)
+        currentTime = time.time()
+        if currentTime - timer > 1:
+            print("Iteration " + str(j) + " Current best: "+ str(population[0]))
+            timer = currentTime
     return population[0]
         
 def runIteration(population, objectiveFunction):
-    scoredResults = [ {'betStrategy': i, 'score': objectiveFunction(i)} for i in population]
-    sortedPop = sorted(scoredResults, key=lambda result: result['score'], reverse=True)
+    for i in population:
+        ## This only re-computes scores for things that don't have scores yet.
+        evaluatePopulationMember(i,objectiveFunction)
+    sortedPop = sorted(population, key= lambda result: result['score'], reverse=True)
     # These can show you the progress as you mutate the population.
     # print(sortedPop)
-    print("Current best: "+ str(sortedPop[0]))
-    newPop = [sortedPop[i]['betStrategy'] for i in range(numTopPerformersToKeep)]
+    newPop = [sortedPop[i] for i in range(numTopPerformersToKeep)]
     return refillPop(newPop)
 
 def refillPop(smallPopulation):
@@ -49,14 +65,21 @@ def refillPop(smallPopulation):
     while (len(smallPopulation) < populationSize):
         totalConsidered += 1
         winner = random.choice(smallPopulation)
-        smallPopulation.append(mutate(winner))
+        smallPopulation.append(makePopulationMember(mutate(winner['betStrategy'])))
     return smallPopulation
 
-def mutate(bettingStrategy, nerfConstant = 5):
-    return [i + (random.random() - .5) / nerfConstant for i in bettingStrategy]
+def mutate(bettingStrategy):
+    return [i + (random.random() - .5) / mutationNerfConstant for i in bettingStrategy]
+
+def makePopulationMember(bettingArray):
+    return {'betStrategy': bettingArray, 'score': 'unknown'}
+
+# Statefully modifies the 'score' attribute of the population member.
+# This can help keep us from re-evaluating already evaluated bet strategies.
+def evaluatePopulationMember(popMember, objectiveFunction):
+    if(popMember['score'] == 'unknown'):
+        popMember['score'] = objectiveFunction(popMember['betStrategy'])
+
 
 def newBettingStrategy(betInformationArray):
     return [.5 for i in range(10)]
-
-
-

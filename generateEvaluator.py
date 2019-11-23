@@ -10,7 +10,7 @@ def generateEvaluator(betInformationArray):
 def repeatUntilWithinTolerance(betEvaluator):
     def newEvaluator(betArray):
         results = []
-        while(not certainWithinTolerance(results, 0.2)):
+        while(not certainWithinTolerance(results, 1)):
             results.append(betEvaluator(betArray))
         # This can be helpful if you're running into speed problems.
         # print("Evaluated to be close with " + str(len(results)) + " steps")
