@@ -1,18 +1,21 @@
 import random
 import time
 import math
+import json
 from inspect import signature
 
 
 class PopulationMember:
     # The type of solution will be given by the user.
     def __init__(self, solution):
-        self.score = 'unknown'
+        self.score = -2 ** 20 # We still want to be able to sort populations
+        # with some unkonwn scores, mostly in cases where we timed out
+        # evaluating things in the pop.
         self.evalCount = 0
         self.solution = solution
         
     def addEvaluation(self, newScore):
-        if (self.score) == 'unknown':
+        if (self.evalCount) == 0:
             global totalConsidered
             totalConsidered += 1
             self.score = newScore
@@ -33,7 +36,8 @@ defaultAlgorithmSettings = {
 def runGeneticAlgorithm(initializer,# type (algoSettings) => solution
                         mutator, # type (algoSettings, solution, solution...) => solution
                         scorer, #type: (algoSettings, solution) => number
-                        algorithmSettings={}# If meta-optimizing, all allowed keys should be in this dict
+                        algorithmSettings={}, # If meta-optimizing, all allowed keys should be in this dict
+                        printStatus=False
                         ):
     # Keep track of how many solutions have been checked.
     global totalConsidered
@@ -51,36 +55,44 @@ def runGeneticAlgorithm(initializer,# type (algoSettings) => solution
         initialSolution = initializer(settings)
         population.append(PopulationMember(initialSolution))
     endInitTime = time.time()
-    print("Initialized population of %d members in %.5f seconds" % (len(population), endInitTime - startTime))
+    if(printStatus):
+        print("Initialized population of %d members in %.5f seconds" % (len(population), endInitTime - startTime))
 
-    result = evolve (population, scorer, settings, startTime)
+    result = evolve (population, scorer, settings, startTime, printStatus)
     endEvolveTime = time.time()
-    print ("Finished run; Considered %d total solutions in %.5f seconds. Best member has score %.5f and was evaluated %d times."\
-           % (totalConsidered, endEvolveTime - startTime, result[0].score, result[0].evalCount ))
-    print("Best result: %s" % result[0].solution)
+    
+    if(printStatus):
+        print(\
+            "\n\nFinished run; Considered %d total solutions in %.5f seconds. Best member has score %.5f and was evaluated %d times."\
+            % (totalConsidered, endEvolveTime - startTime, result[0].score, result[0].evalCount ))
+        print("Best result: %s" % result[0].solution)
+    
     return result[0:settings['numTopPerformersToKeep']]
 
 def evolve(
         initialPopulation,
         scorer,
         algorithmSettings,
-        startTime # May stop the algorithm depending on what's in algorithmSettings
+        startTime, # May stop the algorithm depending on what's in algorithmSettings
+        printStatus=False
         ):
     population = initialPopulation
 
     printTimer = time.time()
     for j in range(algorithmSettings['maxIterations']):
+        # Check if we've timed out.
         if (time.time() - startTime > algorithmSettings['timeoutSeconds']):
             break
-        population = runIteration(population, scorer, algorithmSettings)
+        population = runIteration(population, scorer, algorithmSettings, startTime)
         currentTime = time.time()
         if currentTime - printTimer > algorithmSettings['timeBetweenPrints']:
-            print("Iteration %d, Current best: {score: %.4f evalCount: %d}" %\
-                  (j, population[0].score, population[0].evalCount))
+            if(printStatus):
+                print("Iteration %d, Current best: {score: %.5f, evalCount: %d, solution: %s}" %\
+                   (j, population[0].score,population[0].evalCount,population[0].solution ))
             printTimer = currentTime
     return population
         
-def runIteration(population, scorer, algorithmSettings):
+def runIteration(population, scorer, algorithmSettings, startTime):
     # Right now, I'm choosing to prune-then-mutate.
     # You could mutate-then-prune.
     # If you mess with the pop. size and numToKeep, these two choices can be made identical.
@@ -88,7 +100,11 @@ def runIteration(population, scorer, algorithmSettings):
     for i in population:
         # there is room here to optimize - you might not need to re-evaluate things that have already been evaluated a lot.
         # However, this currently saves you from sticking to a bad solution that got a lucky break from the scorer.
-        i.addEvaluation(scorer(i.solution))
+        i.addEvaluation(scorer(algorithmSettings, i.solution))
+        # stop if we've timed out.
+        # This keeps you from passing a timeout just because the population is large.
+        if (time.time() - startTime > algorithmSettings['timeoutSeconds']):
+            break
         
     sortedPop = sorted(
         population,
@@ -96,7 +112,14 @@ def runIteration(population, scorer, algorithmSettings):
             member.score,
         reverse=True # high scores are better.
         )
-    newPop = [sortedPop[i] for i in range(algorithmSettings['numTopPerformersToKeep'])]
+    newPop = [sortedPop[i] \
+              for i in range(\
+                  min(\
+                      algorithmSettings['numTopPerformersToKeep'],\
+                      algorithmSettings['populationSize']\
+                  )\
+              )\
+    ]
     return refillPop(newPop, algorithmSettings)
 
 def refillPop(smallPopulation, algorithmSettings):
