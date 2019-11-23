@@ -39,7 +39,7 @@ class PopulationMember:
         self.evalCount = 0
         self.solution = solution
         
-    def addEvalution(self, newScore):
+    def addEvaluation(self, newScore):
         if (self.score) == 'unknown':
             global totalConsidered
             totalConsidered += 1
@@ -47,7 +47,7 @@ class PopulationMember:
             self.evalCount = 1
         else:
             # Average your score with the previous score
-            self.score = (self.score * evalCount + newScore) / (self.evalCount + 1)
+            self.score = (self.score * self.evalCount + newScore) / (self.evalCount + 1)
             self.evalCount += 1
 
 defaultAlgorithmSettings = {
@@ -75,16 +75,17 @@ def runGeneticAlgorithm(initializer,# type (algoSettings) => solution
 
     startTime = time.time()
     population = [] # Array<PopulationMember>
-    for i in range(populationSize):
+    for i in range(settings['populationSize']):
         initialSolution = initializer(settings)
         population.append(PopulationMember(initialSolution))
     endInitTime = time.time()
     print("Initialized population of %d members in %.5f seconds" % (len(population), endInitTime - startTime))
 
-    result = evolve (population, scorer, algorithmSettings, startTime)
+    result = evolve (population, scorer, settings, startTime)
     endEvolveTime = time.time()
-    print ("Finished run; Considered %d total solutions in #.5f seconds. Best member has score %d and was evaluated %d times."\
+    print ("Finished run; Considered %d total solutions in %.5f seconds. Best member has score %.5f and was evaluated %d times."\
            % (totalConsidered, endEvolveTime - startTime, result[0].score, result[0].evalCount ))
+    print("Best result: %s" % result[0].solution)
     return result[0:settings['numTopPerformersToKeep']]
 
 def evolve(
@@ -102,7 +103,7 @@ def evolve(
         population = runIteration(population, scorer, algorithmSettings)
         currentTime = time.time()
         if currentTime - printTimer > algorithmSettings['timeBetweenPrints']:
-            print("Iteration #d, Current best: {score: %.4f evalCount: %d" %\
+            print("Iteration %d, Current best: {score: %.4f evalCount: %d}" %\
                   (j, population[0].score, population[0].evalCount))
             printTimer = currentTime
     return population
@@ -129,9 +130,11 @@ def runIteration(population, scorer, algorithmSettings):
 def refillPop(smallPopulation, algorithmSettings):
     mutator = algorithmSettings['mutator']
     neededNewMembers = algorithmSettings['populationSize'] - len(smallPopulation)
-    newMembers = [makeChild(smallPopulation, mutator) for i in range(neededNewMembers)]
+    newMembers = [makeChild(smallPopulation, mutator, algorithmSettings) \
+                  for i in range(neededNewMembers)]
     return smallPopulation + newMembers
 
-def makeChild(population, mutator):
-    parents = [random.choice(population) for i in range(len(signature(mutator).parameters) - 1)]
-    return PopulationMember(mutator(algorithmSettings, *parents))
+def makeChild(population, mutator, algorithmSettings):
+    parentPopulationMembers = [random.choice(population) for i in range(len(signature(mutator).parameters) - 1)]
+    parentSolutions = map(lambda s: s.solution, parentPopulationMembers)
+    return PopulationMember(mutator(algorithmSettings, *parentSolutions))
